@@ -13,30 +13,30 @@ _embeddings = OllamaEmbeddings(
 )
 
 
-def get_vector_store(project_name: str) -> Chroma:
+def get_vector_store(
+    project_name: str,
+) -> Chroma:
 
     collection_name = f"project_{project_name}"
 
-    vector_store = Chroma(
+    return Chroma(
         collection_name=collection_name,
         embedding_function=_embeddings,
         persist_directory=CHROMA_PATH,
     )
-
-    return vector_store
 
 
 def search_vectors(
     project_name: str,
     query: str,
     top_k: int = 5,
+    score_threshold: float = 0.3,
 ):
 
     vector_store = get_vector_store(
         project_name
     )
 
-    # Check how many vectors exist
     collection_count = (
         vector_store._collection.count()
     )
@@ -56,13 +56,35 @@ def search_vectors(
     if collection_count == 0:
         return []
 
-    results = vector_store.similarity_search(
-        query=query,
-        k=top_k,
+    results = (
+        vector_store
+        .similarity_search_with_relevance_scores(
+            query=query,
+            k=top_k,
+        )
     )
+
+    filtered_results = []
+
+    for document, score in results:
+
+        print(
+            f"Score: {score:.4f} | "
+            f"File: {document.metadata.get('filename')}"
+        )
+
+        if score >= score_threshold:
+
+            filtered_results.append(
+                (
+                    document,
+                    score,
+                )
+            )
 
     print(
-        f"Search results: {len(results)}"
+        f"Results after threshold: "
+        f"{len(filtered_results)}"
     )
 
-    return results
+    return filtered_results

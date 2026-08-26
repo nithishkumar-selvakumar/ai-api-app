@@ -33,5 +33,6 @@ async def chat(
         project_name=project_name,
         question=request.question,
         top_k=request.top_k,
+        score_threshold=request.score_threshold,
         conversation_id=request.conversation_id,
     )

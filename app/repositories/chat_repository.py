@@ -68,3 +68,38 @@ def get_messages(
         .order_by(Message.created_at)
         .all()
     )
+
+
+def get_project_conversations(
+    db: Session,
+    project_name: str,
+):
+    return (
+        db.query(Conversation)
+        .filter(
+            Conversation.project_name
+            == project_name
+        )
+        .order_by(
+            Conversation.updated_at.desc()
+        )
+        .all()
+    )
+
+
+def delete_conversation(
+    db: Session,
+    conversation_id: int,
+):
+    conversation = get_conversation(
+        db,
+        conversation_id,
+    )
+
+    if not conversation:
+        return False
+
+    db.delete(conversation)
+    db.commit()
+
+    return True
