@@ -1,12 +1,72 @@
+from sqlalchemy.orm import Session
+
+from app.repositories.chat_repository import (
+    add_message,
+    create_conversation,
+    get_conversation,
+    get_messages,
+)
 from app.utils.llm import generate_answer
 from app.utils.vector_search import search_vectors
 
 
 def ask_project(
+    db: Session,
     project_name: str,
     question: str,
     top_k: int = 5,
+    conversation_id: int | None = None,
 ):
+
+    # -----------------------------
+    # Conversation
+    # -----------------------------
+
+    if conversation_id:
+
+        conversation = get_conversation(
+            db,
+            conversation_id,
+        )
+
+        if not conversation:
+            raise ValueError(
+                "Conversation not found"
+            )
+
+        if conversation.project_name != project_name:
+            raise ValueError(
+                "Conversation does not belong "
+                "to this project"
+            )
+
+    else:
+
+        conversation = create_conversation(
+            db=db,
+            project_name=project_name,
+            title=question[:100],
+        )
+
+    # -----------------------------
+    # Previous messages
+    # -----------------------------
+
+    messages = get_messages(
+        db,
+        conversation.id,
+    )
+
+    history = "\n".join(
+        [
+            f"{message.role}: {message.content}"
+            for message in messages[-10:]
+        ]
+    )
+
+    # -----------------------------
+    # Vector search
+    # -----------------------------
 
     documents = search_vectors(
         project_name=project_name,
@@ -15,14 +75,36 @@ def ask_project(
     )
 
     if not documents:
+
+        answer = (
+            "No relevant information was found "
+            "in the uploaded documents."
+        )
+
+        add_message(
+            db,
+            conversation.id,
+            "user",
+            question,
+        )
+
+        add_message(
+            db,
+            conversation.id,
+            "assistant",
+            answer,
+        )
+
         return {
+            "conversation_id": conversation.id,
             "question": question,
-            "answer": (
-                "No relevant information was "
-                "found in the uploaded documents."
-            ),
+            "answer": answer,
             "sources": [],
         }
+
+    # -----------------------------
+    # Context
+    # -----------------------------
 
     context_parts = []
 
@@ -55,12 +137,36 @@ def ask_project(
         context_parts
     )
 
+    # -----------------------------
+    # LLM
+    # -----------------------------
+
     answer = generate_answer(
         question=question,
         context=context,
+        history=history,
+    )
+
+    # -----------------------------
+    # Save messages
+    # -----------------------------
+
+    add_message(
+        db,
+        conversation.id,
+        "user",
+        question,
+    )
+
+    add_message(
+        db,
+        conversation.id,
+        "assistant",
+        answer,
     )
 
     return {
+        "conversation_id": conversation.id,
         "question": question,
         "answer": answer,
         "sources": sources,

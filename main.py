@@ -4,6 +4,15 @@ from fastapi.openapi.utils import get_openapi
 from app.routes.upload_routes import router as upload_router
 from app.routes.chat_routes import router as chat_router
 
+# temporary fix for
+from app.database.base import Base
+from app.database.connection import engine
+from app.models.chat_entity import Conversation, Message
+
+Base.metadata.create_all(
+    bind=engine
+)
+
 
 app = FastAPI(
     title="AI Defect Analyzer API",
