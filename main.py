@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.openapi.utils import get_openapi
 
 from app.routes.upload_routes import router as upload_router
+from app.routes.chat_routes import router as chat_router
 
 
 app = FastAPI(
@@ -11,6 +12,7 @@ app = FastAPI(
 
 
 app.include_router(upload_router)
+app.include_router(chat_router)
 
 
 def custom_openapi():

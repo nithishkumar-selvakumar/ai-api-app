@@ -1,5 +1,6 @@
 uv run python -m uvicorn main:app --reload
 uv add -r requirements.txt
+ollama list
 
 ## Files API
 
