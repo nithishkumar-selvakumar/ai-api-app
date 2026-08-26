@@ -15,6 +15,7 @@ def ask_project(
     project_name: str,
     question: str,
     top_k: int = 5,
+    score_threshold: float = 0.3,
     conversation_id: int | None = None,
 ):
 
@@ -68,16 +69,21 @@ def ask_project(
     # Vector search
     # -----------------------------
 
-    documents = search_vectors(
+    search_results = search_vectors(
         project_name=project_name,
         query=question,
         top_k=top_k,
+        score_threshold=score_threshold,
     )
 
-    if not documents:
+    # -----------------------------
+    # No relevant documents
+    # -----------------------------
+
+    if not search_results:
 
         answer = (
-            "No relevant information was found "
+            "The information is not available "
             "in the uploaded documents."
         )
 
@@ -110,7 +116,7 @@ def ask_project(
 
     sources = []
 
-    for document in documents:
+    for document, score in search_results:
 
         context_parts.append(
             document.page_content
@@ -130,6 +136,7 @@ def ask_project(
                     "chunk_index",
                     -1,
                 ),
+                "score": round(score, 4),
             }
         )
 
@@ -148,7 +155,7 @@ def ask_project(
     )
 
     # -----------------------------
-    # Save messages
+    # Save user message
     # -----------------------------
 
     add_message(
@@ -158,12 +165,20 @@ def ask_project(
         question,
     )
 
+    # -----------------------------
+    # Save assistant message
+    # -----------------------------
+
     add_message(
         db,
         conversation.id,
         "assistant",
         answer,
     )
+
+    # -----------------------------
+    # Response
+    # -----------------------------
 
     return {
         "conversation_id": conversation.id,
