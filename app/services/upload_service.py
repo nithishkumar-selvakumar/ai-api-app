@@ -1,6 +1,9 @@
 from pathlib import Path
 
 from fastapi import HTTPException, UploadFile
+from app.utils.chunker import create_chunks
+from app.utils.document_loader import load_document
+from app.utils.vector_store import create_vector_store
 
 
 UPLOAD_ROOT = Path("uploaded-docs")
@@ -84,7 +87,11 @@ async def save_files(
         )
 
     project_dir = UPLOAD_ROOT / project_name
-    project_dir.mkdir(parents=True, exist_ok=True)
+
+    project_dir.mkdir(
+        parents=True,
+        exist_ok=True,
+    )
 
     uploaded_files = []
 
@@ -93,8 +100,9 @@ async def save_files(
         if not file.filename:
             continue
 
-        # Get extension
-        extension = Path(file.filename).suffix.lower()
+        extension = Path(
+            file.filename
+        ).suffix.lower()
 
         if extension not in ALLOWED_EXTENSIONS:
             raise HTTPException(
@@ -102,25 +110,80 @@ async def save_files(
                 detail=f"Unsupported file type: {file.filename}",
             )
 
-        # Remove any directory components from filename
-        filename = Path(file.filename).name
+        filename = Path(
+            file.filename
+        ).name
 
         file_path = project_dir / filename
 
-        # Save file in chunks
+        # --------------------------------
+        # 1. SAVE FILE
+        # --------------------------------
+
         try:
+
             with file_path.open("wb") as buffer:
-                while chunk := await file.read(1024 * 1024):
+
+                while chunk := await file.read(
+                    1024 * 1024
+                ):
                     buffer.write(chunk)
 
         finally:
             await file.close()
+
+        # --------------------------------
+        # 2. LOAD DOCUMENT
+        # --------------------------------
+
+        documents = load_document(
+            file_path
+        )
+
+        # --------------------------------
+        # 3. CREATE CHUNKS
+        # --------------------------------
+
+        chunks = create_chunks(
+            documents
+        )
+
+        # --------------------------------
+        # 4. ADD METADATA
+        # --------------------------------
+
+        for index, chunk in enumerate(chunks):
+
+            chunk.metadata.update(
+                {
+                    "project_name": project_name,
+                    "filename": filename,
+                    "file_type": extension,
+                    "chunk_index": index,
+                }
+            )
+
+        # --------------------------------
+        # 5. CREATE EMBEDDINGS
+        # --------------------------------
+
+        vector_count = create_vector_store(
+            project_name=project_name,
+            chunks=chunks,
+        )
+
+        # --------------------------------
+        # 6. RESPONSE
+        # --------------------------------
 
         uploaded_files.append(
             {
                 "filename": filename,
                 "path": str(file_path),
                 "size": file_path.stat().st_size,
+                "documents": len(documents),
+                "chunks": len(chunks),
+                "vectors": vector_count,
             }
         )
 
@@ -131,7 +194,7 @@ async def save_files(
         )
 
     return {
-        "message": "Files uploaded successfully",
+        "message": "Files uploaded and processed successfully",
         "project_name": project_name,
         "files": uploaded_files,
     }

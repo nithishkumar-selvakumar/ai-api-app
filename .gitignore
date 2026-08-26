@@ -10,3 +10,4 @@ wheels/
 .venv
 
 uploaded-docs/
+chroma-data/
