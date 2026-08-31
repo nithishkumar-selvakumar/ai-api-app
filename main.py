@@ -4,6 +4,7 @@ from fastapi.openapi.utils import get_openapi
 from app.routes.upload_routes import router as upload_router
 from app.routes.chat_routes import router as chat_router
 from app.routes.conversation_routes import router as conversation_router
+from app.routes.service_now_routes import router as service_now_router
 
 # temporary fix for
 from app.database.base import Base
@@ -24,6 +25,7 @@ app = FastAPI(
 app.include_router(upload_router)
 app.include_router(chat_router)
 app.include_router(conversation_router)
+app.include_router(service_now_router)
 
 
 def custom_openapi():

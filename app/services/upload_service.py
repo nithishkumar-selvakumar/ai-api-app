@@ -87,11 +87,22 @@ async def save_files(
         )
 
     project_dir = UPLOAD_ROOT / project_name
+    incident_file = project_dir / "service-now-insident.json"
 
     project_dir.mkdir(
         parents=True,
         exist_ok=True,
     )
+
+    if not incident_file.exists():
+        incident_file.write_text(
+            "[]",
+            encoding="utf-8",
+        )
+
+    # --------------------------------
+    # CREATE SERVICE-NOW INCIDENT FILE
+    # --------------------------------
 
     uploaded_files = []
 
