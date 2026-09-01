@@ -6,26 +6,32 @@ ALLOWED_FILES = {
 
 def validate(result: dict) -> None:
 
+    required_fields = {
+        "documentation_required",
+        "reason",
+        "sd",
+        "dd",
+    }
+
+    # --------------------------------------------------
+    # Basic response validation
+    # --------------------------------------------------
+
     if not isinstance(result, dict):
         raise ValueError(
             "Gemini response must be a JSON object."
         )
 
-    required_fields = {
-        "documentation_required",
-        "reason",
-        "files",
-    }
-
-    missing = (
-        required_fields
-        - result.keys()
-    )
+    missing = required_fields - result.keys()
 
     if missing:
         raise ValueError(
             f"Missing fields: {missing}"
         )
+
+    # --------------------------------------------------
+    # documentation_required
+    # --------------------------------------------------
 
     if not isinstance(
         result["documentation_required"],
@@ -35,6 +41,10 @@ def validate(result: dict) -> None:
             "documentation_required must be boolean."
         )
 
+    # --------------------------------------------------
+    # reason
+    # --------------------------------------------------
+
     if not isinstance(
         result["reason"],
         str,
@@ -43,32 +53,81 @@ def validate(result: dict) -> None:
             "reason must be a string."
         )
 
-    files = result["files"]
-
-    if not isinstance(files, dict):
+    if not result["reason"].strip():
         raise ValueError(
-            "files must be an object."
+            "reason cannot be empty."
         )
 
-    unexpected = (
-        set(files.keys())
-        - ALLOWED_FILES
-    )
+    # --------------------------------------------------
+    # SD
+    # --------------------------------------------------
 
-    if unexpected:
+    if not isinstance(
+        result["sd"],
+        str,
+    ):
         raise ValueError(
-            "Gemini attempted to modify "
-            f"forbidden files: {unexpected}"
+            "sd must be a string."
         )
 
-    for path, content in files.items():
+    # --------------------------------------------------
+    # DD
+    # --------------------------------------------------
 
-        if not isinstance(content, str):
+    if not isinstance(
+        result["dd"],
+        str,
+    ):
+        raise ValueError(
+            "dd must be a string."
+        )
+
+    # --------------------------------------------------
+    # Documentation NOT required
+    # --------------------------------------------------
+
+    if not result["documentation_required"]:
+
+        if result["sd"].strip():
             raise ValueError(
-                f"{path} must contain string content."
+                "Documentation is marked as unnecessary "
+                "but SD.md content was returned."
             )
 
-        if path not in ALLOWED_FILES:
+        if result["dd"].strip():
             raise ValueError(
-                f"Forbidden documentation path: {path}"
+                "Documentation is marked as unnecessary "
+                "but DD.md content was returned."
             )
+
+        return
+
+    # --------------------------------------------------
+    # Documentation IS required
+    # --------------------------------------------------
+
+    if not result["sd"].strip():
+        raise ValueError(
+            "Documentation is required but SD.md "
+            "content is empty."
+        )
+
+    if not result["dd"].strip():
+        raise ValueError(
+            "Documentation is required but DD.md "
+            "content is empty."
+        )
+
+    # --------------------------------------------------
+    # Basic Markdown sanity checks
+    # --------------------------------------------------
+
+    if not result["sd"].lstrip().startswith("#"):
+        raise ValueError(
+            "SD.md does not appear to be valid Markdown."
+        )
+
+    if not result["dd"].lstrip().startswith("#"):
+        raise ValueError(
+            "DD.md does not appear to be valid Markdown."
+        )

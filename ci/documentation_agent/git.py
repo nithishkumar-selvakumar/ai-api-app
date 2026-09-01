@@ -5,9 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def run_git(
-    args: list[str],
-) -> str:
+def run_git(args: list[str]) -> str:
 
     result = subprocess.run(
         ["git", *args],
@@ -21,6 +19,7 @@ def run_git(
 
 
 def get_current_commit() -> str:
+
     return run_git([
         "rev-parse",
         "HEAD",
@@ -28,6 +27,7 @@ def get_current_commit() -> str:
 
 
 def get_current_branch() -> str:
+
     return run_git([
         "branch",
         "--show-current",
@@ -55,7 +55,8 @@ def create_documentation_branch(
 
 def has_documentation_changes() -> bool:
 
-    result = subprocess.run(
+    # Check tracked modifications.
+    tracked_result = subprocess.run(
         [
             "git",
             "diff",
@@ -67,7 +68,29 @@ def has_documentation_changes() -> bool:
         cwd=ROOT,
     )
 
-    return result.returncode != 0
+    if tracked_result.returncode != 0:
+        return True
+
+    # Check untracked documentation files.
+    untracked_result = subprocess.run(
+        [
+            "git",
+            "ls-files",
+            "--others",
+            "--exclude-standard",
+            "--",
+            "docs/SD.md",
+            "docs/DD.md",
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    return bool(
+        untracked_result.stdout.strip()
+    )
 
 
 def commit_documentation(
@@ -80,6 +103,25 @@ def commit_documentation(
         "docs/SD.md",
         "docs/DD.md",
     ])
+
+    # Make sure something was actually staged.
+    staged_result = subprocess.run(
+        [
+            "git",
+            "diff",
+            "--cached",
+            "--quiet",
+            "--",
+            "docs/SD.md",
+            "docs/DD.md",
+        ],
+        cwd=ROOT,
+    )
+
+    if staged_result.returncode == 0:
+        raise RuntimeError(
+            "No documentation changes were staged."
+        )
 
     run_git([
         "commit",

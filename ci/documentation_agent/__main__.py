@@ -7,7 +7,6 @@ from .validator import validate
 from .git import (
     commit_documentation,
     create_documentation_branch,
-    get_current_branch,
     get_current_commit,
     has_documentation_changes,
 )
@@ -16,7 +15,6 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 def run(command: list[str]) -> str:
-
     result = subprocess.run(
         command,
         cwd=ROOT,
@@ -25,11 +23,10 @@ def run(command: list[str]) -> str:
         text=True,
     )
 
-    return result.stdout
+    return result.stdout.strip()
 
 
 def get_git_diff() -> str:
-
     return run([
         "git",
         "diff",
@@ -39,7 +36,6 @@ def get_git_diff() -> str:
 
 
 def get_changed_files() -> list[str]:
-
     output = run([
         "git",
         "diff",
@@ -61,11 +57,11 @@ def read_source_files(
 
     result = {}
 
-    # Start with changed source files.
+    # Start with changed files.
     candidate_files = set(changed_files)
 
-    # Add application source files so Gemini can understand
-    # the architecture and dependencies of the changed code.
+    # Add all application Python files so Gemini
+    # can understand dependencies and architecture.
     app_dir = ROOT / "app"
 
     if app_dir.exists():
@@ -94,21 +90,20 @@ def read_source_files(
             continue
 
         try:
-
             content = path.read_text(
                 encoding="utf-8"
             )
 
         except UnicodeDecodeError:
-
             continue
 
         result[relative_path] = content
 
     return result
 
+
 def write_documentation(
-    files: dict[str, str],
+    documentation_files: dict[str, str],
 ) -> None:
 
     allowed_files = {
@@ -116,7 +111,7 @@ def write_documentation(
         "docs/DD.md",
     }
 
-    for relative_path, content in files.items():
+    for relative_path, content in documentation_files.items():
 
         if relative_path not in allowed_files:
             raise ValueError(
@@ -140,11 +135,16 @@ def write_documentation(
             f"Updated: {relative_path}"
         )
 
+
 def main():
 
     print("================================")
     print("AI Documentation Agent")
     print("================================")
+
+    # --------------------------------------------------
+    # 1. Get changed files
+    # --------------------------------------------------
 
     changed_files = get_changed_files()
 
@@ -153,7 +153,15 @@ def main():
     for path in changed_files:
         print(f"  {path}")
 
+    # --------------------------------------------------
+    # 2. Get Git diff
+    # --------------------------------------------------
+
     git_diff = get_git_diff()
+
+    # --------------------------------------------------
+    # 3. Read relevant source code
+    # --------------------------------------------------
 
     source_files = read_source_files(
         changed_files
@@ -164,14 +172,23 @@ def main():
         "source files to Gemini..."
     )
 
+    # --------------------------------------------------
+    # 4. Ask Gemini
+    # --------------------------------------------------
+
     result = generate_documentation(
         git_diff=git_diff,
         source_files=source_files,
     )
 
+    # --------------------------------------------------
+    # 5. Validate Gemini response
+    # --------------------------------------------------
+
     validate(result)
 
     print("\nGemini result:")
+
     print(
         f"Documentation required: "
         f"{result['documentation_required']}"
@@ -181,62 +198,80 @@ def main():
         f"Reason: {result['reason']}"
     )
 
-    if result["documentation_required"]:
+    # --------------------------------------------------
+    # 6. No documentation required
+    # --------------------------------------------------
 
-        print("\nFiles proposed:")
-
-        for path in result["files"]:
-            print(f"  {path}")
-
-        if result["documentation_required"]:
-
-            write_documentation(
-                result["files"]
-            )
-
-            if not has_documentation_changes():
-
-                print(
-                    "\nGemini requested documentation "
-                    "but produced no actual changes."
-                )
-
-                return
-
-            commit_sha = get_current_commit()
-
-            branch_name = create_documentation_branch(
-                commit_sha
-            )
-
-            print(
-                f"\nCreated documentation branch: "
-                f"{branch_name}"
-            )
-
-            commit_documentation(
-                commit_sha
-            )
-
-            print(
-                "\nDocumentation commit created."
-            )
-
-        else:
-
-            print(
-                "\nNo documentation changes required."
-            )
-
-        print(
-            "\nDocumentation files updated successfully."
-        )
-
-    else:
+    if not result["documentation_required"]:
 
         print(
             "\nNo documentation changes required."
         )
+
+        return
+
+    # --------------------------------------------------
+    # 7. Prepare documentation files
+    # --------------------------------------------------
+
+    documentation_files = {
+        "docs/SD.md": result["sd"],
+        "docs/DD.md": result["dd"],
+    }
+
+    print("\nFiles proposed:")
+
+    for path in documentation_files:
+        print(f"  {path}")
+
+    # --------------------------------------------------
+    # 8. Create documentation branch BEFORE
+    #    modifying documentation
+    # --------------------------------------------------
+
+    commit_sha = get_current_commit()
+
+    branch_name = create_documentation_branch(
+        commit_sha
+    )
+
+    print(
+        f"\nCreated documentation branch: "
+        f"{branch_name}"
+    )
+
+    # --------------------------------------------------
+    # 9. Write documentation
+    # --------------------------------------------------
+
+    write_documentation(
+        documentation_files
+    )
+
+    # --------------------------------------------------
+    # 10. Check whether actual changes exist
+    # --------------------------------------------------
+
+    if not has_documentation_changes():
+
+        print(
+            "\nGemini requested documentation "
+            "but produced no actual changes."
+        )
+
+        return
+
+    # --------------------------------------------------
+    # 11. Commit only SD.md / DD.md
+    # --------------------------------------------------
+
+    commit_documentation(
+        commit_sha
+    )
+
+    print(
+        "\nDocumentation commit created."
+    )
 
 
 if __name__ == "__main__":

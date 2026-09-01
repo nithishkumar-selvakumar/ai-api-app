@@ -106,7 +106,6 @@ RELEVANT SOURCE CODE
 {source_code}
 """
 
-
 def generate_documentation(
     git_diff: str,
     source_files: dict[str, str],
@@ -127,87 +126,46 @@ def generate_documentation(
         existing_dd=existing_dd,
     )
 
-    response_schema = {
-        "type": "object",
-        "properties": {
-            "documentation_required": {
-                "type": "boolean"
-            },
-            "reason": {
-                "type": "string"
-            },
-            "files": {
-                "type": "object",
+    response = client.models.generate_content(
+        model=MODEL,
+        contents=prompt,
+        config={
+            "response_mime_type": "application/json",
+            "response_schema": {
+                "type": "OBJECT",
                 "properties": {
-                    "docs/SD.md": {
-                        "type": "string"
+                    "documentation_required": {
+                        "type": "BOOLEAN"
                     },
-                    "docs/DD.md": {
-                        "type": "string"
+                    "reason": {
+                        "type": "STRING"
+                    },
+                    "sd": {
+                        "type": "STRING"
+                    },
+                    "dd": {
+                        "type": "STRING"
                     }
                 },
-                "additionalProperties": False
-            }
-        },
-        "required": [
-            "documentation_required",
-            "reason",
-            "files"
-        ],
-        "additionalProperties": False
-    }
-
-    interaction = client.interactions.create(
-        model=MODEL,
-        input=prompt,
-        response_format={
-            "type": "text",
-            "text": {
-                "format": {
-                    "type": "json_schema",
-                    "name": "documentation_result",
-                    "schema": {
-                        "type": "object",
-                        "properties": {
-                            "documentation_required": {
-                                "type": "boolean"
-                            },
-                            "reason": {
-                                "type": "string"
-                            },
-                            "files": {
-                                "type": "object",
-                                "properties": {
-                                    "docs/SD.md": {
-                                        "type": "string"
-                                    },
-                                    "docs/DD.md": {
-                                        "type": "string"
-                                    }
-                                },
-                                "additionalProperties": False
-                            }
-                        },
-                        "required": [
-                            "documentation_required",
-                            "reason",
-                            "files"
-                        ],
-                        "additionalProperties": False
-                    }
-                }
+                "required": [
+                    "documentation_required",
+                    "reason",
+                    "sd",
+                    "dd"
+                ]
             }
         }
     )
 
-    text = interaction.output_text.strip()
-
     try:
-        return json.loads(text)
+
+        return json.loads(
+            response.text
+        )
 
     except json.JSONDecodeError as exc:
 
         raise RuntimeError(
             "Gemini returned invalid JSON:\n\n"
-            + text
+            + response.text
         ) from exc
