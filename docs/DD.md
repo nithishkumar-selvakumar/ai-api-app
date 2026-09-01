@@ -171,4 +171,58 @@ The system provides REST endpoints separated into three distinct router modules:
   - PDF -> `PyPDFLoader`
   - CSV -> `CSVLoader`
   - Excel -> `UnstructuredExcelLoader`
-  - JSON -> `JSONLoader` (`jq_schema=
+  - JSON -> `JSONLoader` (`jq_schema="."`, `text_content=False`)
+  - DOCX -> `_load_docx` custom paragraph extraction
+- Text splitting strategy (`app/utils/chunker.py`):
+  - `RecursiveCharacterTextSplitter` (`chunk_size=1000`, `chunk_overlap=200`).
+
+## 10. AI / RAG Processing
+
+- **Embeddings**:
+  - Model: `nomic-embed-text` via `OllamaEmbeddings` at `http://localhost:11434`.
+  - Store: Chroma DB persisted in directory `chroma-data`.
+  - Collection Naming: `project_<project_name>`.
+  - Vector ID Format: `<project_name>:<filename>:<chunk_index>`.
+- **Vector Search**:
+  - Similarity search with relevance scores.
+  - Filters results below `score_threshold` (default 0.3).
+- **LLM Context Synthesis**:
+  - Model: `llama3.2` via `ChatOllama` at `http://localhost:11434` with `temperature=0`.
+  - Prompt restricts answers strictly to document context.
+
+## 11. Conversation Management
+
+- Implicit conversation initialization upon submission of a query without `conversation_id`.
+- Contextual memory tracks up to 10 recent messages in linear prompt format.
+- Foreign key constraints ensure conversation deletion automatically purges all associated messages.
+
+## 12. Error Handling
+
+- Raises `HTTPException(status_code=400)` for invalid project names, missing files, or unsupported file formats.
+- Raises `HTTPException(status_code=404)` for missing projects, conversations, or files.
+- Throws `ValueError` in `chat_service` if conversation is invalid or mismatched across projects.
+
+## 13. Configuration and Environment Variables
+
+- Database connection string defined in `app/database/connection.py` targeting PostgreSQL.
+- Local filesystem storage configured at `uploaded-docs` and `chroma-data`.
+- Ollama base URL defaulting to `http://localhost:11434`.
+
+## 14. Sequence / Data Flow
+
+1. Client issues `POST` to `/api/chat/{project_name}/ask` with `ChatRequest` JSON.
+2. `chat_routes.chat` invokes `chat_controller.ask` -> `chat_service.ask_project`.
+3. `chat_service` looks up or creates `Conversation` entity via `chat_repository`.
+4. `chat_service` loads past conversation messages via `get_messages`.
+5. `chat_service` searches Chroma collection `project_<project_name>` using query string and parameters.
+6. Formatted context and history are passed into `generate_answer` prompt -> Ollama LLM execution.
+7. User question and assistant generated response saved as `Message` entities.
+8. `ChatResponse` payload returned to client.
+
+## 15. Change History
+
+- Added `GET /api/chat/documentation-status` endpoint.
+- Added `GET /api/chat/documentation-test` endpoint detail.
+- Added `GET /api/chat/test-documentation` endpoint detail.
+- Route path updated: `POST /api/chat/{project_name}` changed to `POST /api/chat/{project_name}/ask`.
+- Initial creation of Detailed Design Document based on code analysis.
