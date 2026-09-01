@@ -17,6 +17,12 @@ router = APIRouter(
     tags=["Chat"],
 )
 
+@router.get("/documentation-status")
+def documentation_status():
+    return {
+        "status": "documentation-agent-test"
+    }
+
 @router.get("/test-documentation")
 def test_documentation():
     return {"message": "Documentation test"}
