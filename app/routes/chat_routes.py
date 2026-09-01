@@ -17,6 +17,9 @@ router = APIRouter(
     tags=["Chat"],
 )
 
+@router.get("/test-documentation")
+def test_documentation():
+    return {"message": "Documentation test"}
 
 @router.post("/{project_name}/ask")
 async def chat(
