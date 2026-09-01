@@ -13,3 +13,4 @@ openpyxl
 sqlalchemy 
 psycopg[binary] 
 alembic
+google-genai
