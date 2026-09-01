@@ -44,14 +44,38 @@ def create_documentation_branch(
         f"docs/ai-update-{short_sha}"
     )
 
+    # Check whether branch already exists.
+    result = subprocess.run(
+        [
+            "git",
+            "rev-parse",
+            "--verify",
+            branch_name,
+        ],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+    )
+
+    if result.returncode == 0:
+
+        # Branch already exists.
+        run_git([
+            "checkout",
+            branch_name,
+        ])
+
+        return branch_name
+
+    # Create new branch.
     run_git([
         "checkout",
         "-b",
         branch_name,
+        commit_sha,
     ])
 
     return branch_name
-
 
 def has_documentation_changes() -> bool:
 
@@ -128,3 +152,62 @@ def commit_documentation(
         "-m",
         f"docs: update SD and DD for {commit_sha[:8]}",
     ])
+
+def push_documentation_branch(
+    branch_name: str,
+) -> None:
+
+    run_git([
+        "push",
+        "--set-upstream",
+        "origin",
+        branch_name,
+    ])
+
+def get_parent_commit(commit_sha: str) -> str:
+    return run_git([
+        "rev-parse",
+        f"{commit_sha}^",
+    ])
+
+
+def get_git_diff(commit_sha: str | None = None) -> str:
+    if commit_sha:
+        parent_sha = get_parent_commit(commit_sha)
+
+        return run_git([
+            "diff",
+            parent_sha,
+            commit_sha,
+        ])
+
+    return run_git([
+        "diff",
+        "HEAD^",
+        "HEAD",
+    ])
+
+
+def get_changed_files(commit_sha: str | None = None) -> list[str]:
+    if commit_sha:
+        parent_sha = get_parent_commit(commit_sha)
+
+        output = run_git([
+            "diff",
+            "--name-only",
+            parent_sha,
+            commit_sha,
+        ])
+    else:
+        output = run_git([
+            "diff",
+            "--name-only",
+            "HEAD^",
+            "HEAD",
+        ])
+
+    return [
+        file.strip()
+        for file in output.splitlines()
+        if file.strip()
+    ]

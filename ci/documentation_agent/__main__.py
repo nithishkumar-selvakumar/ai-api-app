@@ -1,54 +1,21 @@
-import subprocess
+import os
 from pathlib import Path
 
 from .agent import generate_documentation
 from .validator import validate
+from .github import create_pull_request
 
 from .git import (
     commit_documentation,
     create_documentation_branch,
     get_current_commit,
+    get_changed_files,
+    get_git_diff,
     has_documentation_changes,
+    push_documentation_branch,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
-
-
-def run(command: list[str]) -> str:
-    result = subprocess.run(
-        command,
-        cwd=ROOT,
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-
-    return result.stdout.strip()
-
-
-def get_git_diff() -> str:
-    return run([
-        "git",
-        "diff",
-        "HEAD^",
-        "HEAD",
-    ])
-
-
-def get_changed_files() -> list[str]:
-    output = run([
-        "git",
-        "diff",
-        "--name-only",
-        "HEAD^",
-        "HEAD",
-    ])
-
-    return [
-        line.strip()
-        for line in output.splitlines()
-        if line.strip()
-    ]
 
 
 def read_source_files(
@@ -90,11 +57,13 @@ def read_source_files(
             continue
 
         try:
+
             content = path.read_text(
                 encoding="utf-8"
             )
 
         except UnicodeDecodeError:
+
             continue
 
         result[relative_path] = content
@@ -114,6 +83,7 @@ def write_documentation(
     for relative_path, content in documentation_files.items():
 
         if relative_path not in allowed_files:
+
             raise ValueError(
                 f"Forbidden documentation file: "
                 f"{relative_path}"
@@ -143,10 +113,26 @@ def main():
     print("================================")
 
     # --------------------------------------------------
-    # 1. Get changed files
+    # 1. Resolve documentation commit
     # --------------------------------------------------
 
-    changed_files = get_changed_files()
+    documentation_commit_sha = (
+        os.getenv("DOCUMENTATION_COMMIT_SHA")
+        or get_current_commit()
+    )
+
+    print(
+        f"\nDocumentation commit: "
+        f"{documentation_commit_sha}"
+    )
+
+    # --------------------------------------------------
+    # 2. Get changed files
+    # --------------------------------------------------
+
+    changed_files = get_changed_files(
+        documentation_commit_sha
+    )
 
     print("\nChanged files:")
 
@@ -154,13 +140,15 @@ def main():
         print(f"  {path}")
 
     # --------------------------------------------------
-    # 2. Get Git diff
+    # 3. Get Git diff
     # --------------------------------------------------
 
-    git_diff = get_git_diff()
+    git_diff = get_git_diff(
+        documentation_commit_sha
+    )
 
     # --------------------------------------------------
-    # 3. Read relevant source code
+    # 4. Read source files
     # --------------------------------------------------
 
     source_files = read_source_files(
@@ -173,7 +161,7 @@ def main():
     )
 
     # --------------------------------------------------
-    # 4. Ask Gemini
+    # 5. Generate documentation
     # --------------------------------------------------
 
     result = generate_documentation(
@@ -182,7 +170,7 @@ def main():
     )
 
     # --------------------------------------------------
-    # 5. Validate Gemini response
+    # 6. Validate Gemini response
     # --------------------------------------------------
 
     validate(result)
@@ -199,7 +187,7 @@ def main():
     )
 
     # --------------------------------------------------
-    # 6. No documentation required
+    # 7. Stop if documentation is not required
     # --------------------------------------------------
 
     if not result["documentation_required"]:
@@ -211,7 +199,7 @@ def main():
         return
 
     # --------------------------------------------------
-    # 7. Prepare documentation files
+    # 8. Prepare documentation files
     # --------------------------------------------------
 
     documentation_files = {
@@ -225,14 +213,11 @@ def main():
         print(f"  {path}")
 
     # --------------------------------------------------
-    # 8. Create documentation branch BEFORE
-    #    modifying documentation
+    # 9. Create documentation branch
     # --------------------------------------------------
 
-    commit_sha = get_current_commit()
-
     branch_name = create_documentation_branch(
-        commit_sha
+        documentation_commit_sha
     )
 
     print(
@@ -241,7 +226,7 @@ def main():
     )
 
     # --------------------------------------------------
-    # 9. Write documentation
+    # 10. Write documentation
     # --------------------------------------------------
 
     write_documentation(
@@ -249,7 +234,7 @@ def main():
     )
 
     # --------------------------------------------------
-    # 10. Check whether actual changes exist
+    # 11. Check actual documentation changes
     # --------------------------------------------------
 
     if not has_documentation_changes():
@@ -262,15 +247,45 @@ def main():
         return
 
     # --------------------------------------------------
-    # 11. Commit only SD.md / DD.md
+    # 12. Commit documentation
     # --------------------------------------------------
 
     commit_documentation(
-        commit_sha
+        documentation_commit_sha
     )
 
     print(
         "\nDocumentation commit created."
+    )
+
+    # --------------------------------------------------
+    # 13. Push documentation branch
+    # --------------------------------------------------
+
+    push_documentation_branch(
+        branch_name
+    )
+
+    print(
+        f"\nPushed branch to GitHub: "
+        f"{branch_name}"
+    )
+
+    # --------------------------------------------------
+    # 14. Create Pull Request
+    # --------------------------------------------------
+
+    pull_request = create_pull_request(
+        branch_name=branch_name,
+        commit_sha=documentation_commit_sha,
+    )
+
+    print(
+        "\nPull Request created:"
+    )
+
+    print(
+        pull_request["html_url"]
     )
 
 
