@@ -27,7 +27,7 @@ async def chat(
         Depends(get_db),
     ],
 ):
-
+    print("Chat request received:", request)
     return ask(
         db=db,
         project_name=project_name,
