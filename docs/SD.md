@@ -19,7 +19,7 @@ The application follows a standard layered architecture pattern powered by FastA
 
 ### 3.1 API Layer
 - `app.routes.upload_routes`: Handles file upload, metadata listing, and file retrieval endpoints.
-- `app.routes.chat_routes`: Exposes the RAG query endpoint and test endpoint.
+- `app.routes.chat_routes`: Exposes the RAG query endpoint.
 - `app.routes.conversation_routes`: Provides endpoints for listing, viewing, and deleting conversation histories.
 
 ### 3.2 Controller Layer
@@ -54,7 +54,6 @@ The application follows a standard layered architecture pattern powered by FastA
   - `GET /upload/{project_name}/{filename}`: Download a specific uploaded project file.
 
 - **Chat Endpoints** (`/api/chat`):
-  - `GET /test-documentation`: Returns a simple documentation test message.
   - `POST /{project_name}/ask`: Process user questions for a specific project using RAG.
 
 - **Conversation Endpoints** (`/api/conversations`):
@@ -105,6 +104,6 @@ The application follows a standard layered architecture pattern powered by FastA
 
 ## 11. Change History
 
-- Added `GET /api/chat/test-documentation` test endpoint.
+- Removed `GET /api/chat/test-documentation` test endpoint.
 - Updated chat endpoint route path from `/api/chat/{project_name}` to `/api/chat/{project_name}/ask`.
 - Initial generation of Software Design Document from application source code.

@@ -73,9 +73,6 @@ The system provides REST endpoints separated into three distinct router modules:
   - Path params: `project_name` (`str`), `filename` (`str`)
   - Handler: `upload_routes.download_project_file`
 
-- **`GET /api/chat/test-documentation`**
-  - Handler: `chat_routes.test_documentation`
-
 - **`POST /api/chat/{project_name}/ask`**
   - Path param: `project_name` (`str`)
   - Body: `ChatRequest`
@@ -215,6 +212,6 @@ The system provides REST endpoints separated into three distinct router modules:
 
 ## 15. Change History
 
-- Added `GET /api/chat/test-documentation` endpoint detail.
+- Removed `GET /api/chat/test-documentation` endpoint.
 - Route path updated: `POST /api/chat/{project_name}` changed to `POST /api/chat/{project_name}/ask`.
 - Initial creation of Detailed Design Document based on code analysis.
