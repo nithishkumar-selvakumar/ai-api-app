@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated
 
 from fastapi import (
@@ -16,6 +17,11 @@ router = APIRouter(
     prefix="/api/chat",
     tags=["Chat"],
 )
+
+
+@router.get("/time")
+async def get_current_time():
+    return {"time": datetime.now().isoformat()}
 
 
 
