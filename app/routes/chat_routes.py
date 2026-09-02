@@ -19,7 +19,7 @@ router = APIRouter(
 
 
 
-@router.post("/{project_name}/ask")
+@router.post("/{project_name}")
 async def chat(
     project_name: str,
     request: ChatRequest,
