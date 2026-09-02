@@ -55,6 +55,7 @@ The application follows a standard layered architecture pattern powered by FastA
 
 - **Chat Endpoints** (`/api/chat`):
   - `GET /time`: Returns current timestamp in ISO format.
+  - `GET /datetime`: Returns current timestamp in ISO format.
   - `GET /datetime-now`: Returns current timestamp in ISO format.
   - `POST /{project_name}/ask`: Process user questions for a specific project using RAG.
 
@@ -106,6 +107,7 @@ The application follows a standard layered architecture pattern powered by FastA
 
 ## 11. Change History
 
+- Added `GET /api/chat/datetime` endpoint returning current server time.
 - Added `GET /api/chat/datetime-now` endpoint returning current server time.
 - Added `GET /api/chat/time` endpoint returning current server time.
 - Updated chat endpoint route path from `/api/chat/{project_name}` to `/api/chat/{project_name}/ask`.

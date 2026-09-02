@@ -76,6 +76,9 @@ The system provides REST endpoints separated into three distinct router modules:
 - **`GET /api/chat/time`**
   - Handler: `chat_routes.get_current_time`
 
+- **`GET /api/chat/datetime`**
+  - Handler: `chat_routes.get_current_time`
+
 - **`GET /api/chat/datetime-now`**
   - Handler: `chat_routes.get_current_time`
 
@@ -165,9 +168,9 @@ The system provides REST endpoints separated into three distinct router modules:
 
 - Supported extensions: `.pdf`, `.csv`, `.xlsx`, `.xls`, `.json`, `.docx`.
 - File loaders utilized (`app/utils/document_loader.py`):
-  - PDF -> `PyPDFLoader`
-  - CSV -> `CSVLoader`
-  - Excel -> `UnstructuredExcelLoader`
+  - PDF -> `PyPDFLoader` 
+  - CSV -> `CSVLoader` 
+  - Excel -> `UnstructuredExcelLoader` 
   - JSON -> `JSONLoader` (`jq_schema="."`, `text_content=False`)
   - DOCX -> `_load_docx` custom paragraph extraction
 - Text splitting strategy (`app/utils/chunker.py`):
@@ -218,6 +221,7 @@ The system provides REST endpoints separated into three distinct router modules:
 
 ## 15. Change History
 
+- Added `GET /api/chat/datetime` endpoint detail.
 - Added `GET /api/chat/datetime-now` endpoint detail.
 - Added `GET /api/chat/time` endpoint detail.
 - Route path updated: `POST /api/chat/{project_name}` changed to `POST /api/chat/{project_name}/ask`.
