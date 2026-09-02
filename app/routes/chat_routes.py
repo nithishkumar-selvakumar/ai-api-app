@@ -27,6 +27,11 @@ async def get_current_time():
 async def get_current_time():
     return {"time": datetime.now().isoformat()}
 
+@router.get("/datetime-now")
+async def get_current_time():
+    return {"time": datetime.now().isoformat()}
+
+
 
 
 @router.post("/{project_name}/ask")
