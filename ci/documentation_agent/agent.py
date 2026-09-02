@@ -2,8 +2,11 @@ import json
 import os
 from pathlib import Path
 
-from google import genai
+import time
 
+from google import genai
+from google.genai import types
+from google.genai.errors import ServerError
 
 ROOT = Path(__file__).resolve().parents[2]
 
@@ -105,67 +108,81 @@ RELEVANT SOURCE CODE
 
 {source_code}
 """
-
 def generate_documentation(
     git_diff: str,
     source_files: dict[str, str],
 ) -> dict:
 
-    existing_sd = read_file(
-        ROOT / "docs" / "SD.md"
-    )
-
-    existing_dd = read_file(
-        ROOT / "docs" / "DD.md"
+    client = genai.Client(
+        api_key=os.environ["GEMINI_API_KEY"]
     )
 
     prompt = build_prompt(
         git_diff=git_diff,
         source_files=source_files,
-        existing_sd=existing_sd,
-        existing_dd=existing_dd,
     )
 
-    response = client.models.generate_content(
-        model=MODEL,
-        contents=prompt,
-        config={
-            "response_mime_type": "application/json",
-            "response_schema": {
-                "type": "OBJECT",
-                "properties": {
-                    "documentation_required": {
-                        "type": "BOOLEAN"
+    max_retries = 5
+
+    for attempt in range(max_retries):
+
+        try:
+
+            print(
+                f"\nCalling Gemini "
+                f"(attempt {attempt + 1}/{max_retries})..."
+            )
+
+            response = client.models.generate_content(
+                model="gemini-3.6-flash",
+                contents=prompt,
+                config=types.GenerateContentConfig(
+                    response_mime_type="application/json",
+                    response_schema={
+                        "type": "OBJECT",
+                        "properties": {
+                            "documentation_required": {
+                                "type": "BOOLEAN"
+                            },
+                            "reason": {
+                                "type": "STRING"
+                            },
+                            "sd": {
+                                "type": "STRING"
+                            },
+                            "dd": {
+                                "type": "STRING"
+                            },
+                        },
+                        "required": [
+                            "documentation_required",
+                            "reason",
+                            "sd",
+                            "dd",
+                        ],
                     },
-                    "reason": {
-                        "type": "STRING"
-                    },
-                    "sd": {
-                        "type": "STRING"
-                    },
-                    "dd": {
-                        "type": "STRING"
-                    }
-                },
-                "required": [
-                    "documentation_required",
-                    "reason",
-                    "sd",
-                    "dd"
-                ]
-            }
-        }
+                ),
+            )
+
+            return json.loads(
+                response.text
+            )
+
+        except ServerError as exc:
+
+            if attempt == max_retries - 1:
+                raise
+
+            wait_seconds = 2 ** attempt
+
+            print(
+                f"Gemini temporarily unavailable "
+                f"(503). Retrying in "
+                f"{wait_seconds} seconds..."
+            )
+
+            time.sleep(wait_seconds)
+
+    raise RuntimeError(
+        "Gemini request failed after retries."
     )
-
-    try:
-
-        return json.loads(
-            response.text
-        )
-
-    except json.JSONDecodeError as exc:
-
-        raise RuntimeError(
-            "Gemini returned invalid JSON:\n\n"
-            + response.text
-        ) from exc
