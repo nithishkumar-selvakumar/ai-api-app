@@ -17,21 +17,7 @@ router = APIRouter(
     tags=["Chat"],
 )
 
-@router.get("/documentation-status")
-def documentation_status():
-    return {
-        "status": "documentation-agent-test"
-    }
 
-@router.get("/test-documentation")
-def test_documentation():
-    return {"message": "Documentation test"}
-
-@router.get("/documentation-test")
-def documentation_test():
-    return {
-        "message": "Documentation pipeline test"
-    }
 
 @router.post("/{project_name}/ask")
 async def chat(
