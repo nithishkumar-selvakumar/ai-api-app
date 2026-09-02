@@ -19,7 +19,7 @@ The application follows a standard layered architecture pattern powered by FastA
 
 ### 3.1 API Layer
 - `app.routes.upload_routes`: Handles file upload, metadata listing, and file retrieval endpoints.
-- `app.routes.chat_routes`: Exposes the RAG query endpoint and time endpoint.
+- `app.routes.chat_routes`: Exposes the RAG query endpoint and time endpoints.
 - `app.routes.conversation_routes`: Provides endpoints for listing, viewing, and deleting conversation histories.
 
 ### 3.2 Controller Layer
@@ -55,6 +55,7 @@ The application follows a standard layered architecture pattern powered by FastA
 
 - **Chat Endpoints** (`/api/chat`):
   - `GET /time`: Returns current timestamp in ISO format.
+  - `GET /datetime-now`: Returns current timestamp in ISO format.
   - `POST /{project_name}/ask`: Process user questions for a specific project using RAG.
 
 - **Conversation Endpoints** (`/api/conversations`):
@@ -105,6 +106,7 @@ The application follows a standard layered architecture pattern powered by FastA
 
 ## 11. Change History
 
+- Added `GET /api/chat/datetime-now` endpoint returning current server time.
 - Added `GET /api/chat/time` endpoint returning current server time.
 - Updated chat endpoint route path from `/api/chat/{project_name}` to `/api/chat/{project_name}/ask`.
 - Initial generation of Software Design Document from application source code.
