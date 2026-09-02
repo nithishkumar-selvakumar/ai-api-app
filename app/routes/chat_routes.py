@@ -23,6 +23,10 @@ router = APIRouter(
 async def get_current_time():
     return {"time": datetime.now().isoformat()}
 
+@router.get("/datetime")
+async def get_current_time():
+    return {"time": datetime.now().isoformat()}
+
 
 
 @router.post("/{project_name}/ask")
