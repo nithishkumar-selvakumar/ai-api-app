@@ -108,18 +108,25 @@ RELEVANT SOURCE CODE
 
 {source_code}
 """
+
 def generate_documentation(
     git_diff: str,
     source_files: dict[str, str],
 ) -> dict:
 
-    client = genai.Client(
-        api_key=os.environ["GEMINI_API_KEY"]
+    existing_sd = read_file(
+        ROOT / "docs" / "SD.md"
+    )
+
+    existing_dd = read_file(
+        ROOT / "docs" / "DD.md"
     )
 
     prompt = build_prompt(
         git_diff=git_diff,
         source_files=source_files,
+        existing_sd=existing_sd,
+        existing_dd=existing_dd,
     )
 
     max_retries = 5
@@ -134,7 +141,7 @@ def generate_documentation(
             )
 
             response = client.models.generate_content(
-                model="gemini-3.6-flash",
+                model=MODEL,
                 contents=prompt,
                 config=types.GenerateContentConfig(
                     response_mime_type="application/json",
