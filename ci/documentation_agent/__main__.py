@@ -15,6 +15,7 @@ from .git import (
     push_documentation_branch,
 )
 
+
 ROOT = Path(__file__).resolve().parents[2]
 
 
@@ -24,31 +25,39 @@ def read_source_files(
 
     result = {}
 
-    # Start with changed files.
-    candidate_files = set(changed_files)
+    candidate_files = set(
+        changed_files
+    )
 
-    # Add all application Python files so Gemini
-    # can understand dependencies and architecture.
     app_dir = ROOT / "app"
 
     if app_dir.exists():
 
         for path in app_dir.rglob("*.py"):
 
-            relative_path = path.relative_to(ROOT)
-
-            candidate_files.add(
-                str(relative_path).replace("\\", "/")
+            relative_path = path.relative_to(
+                ROOT
             )
 
-    for relative_path in sorted(candidate_files):
+            candidate_files.add(
+                str(relative_path).replace(
+                    "\\",
+                    "/",
+                )
+            )
 
-        # Never send documentation.
-        if relative_path.startswith("docs/"):
+    for relative_path in sorted(
+        candidate_files
+    ):
+
+        if relative_path.startswith(
+            "docs/"
+        ):
             continue
 
-        # Never send environment files.
-        if relative_path.startswith(".env"):
+        if relative_path.startswith(
+            ".env"
+        ):
             continue
 
         path = ROOT / relative_path
@@ -66,7 +75,9 @@ def read_source_files(
 
             continue
 
-        result[relative_path] = content
+        result[
+            relative_path
+        ] = content
 
     return result
 
@@ -76,11 +87,12 @@ def write_documentation(
 ) -> None:
 
     allowed_files = {
-        "docs/SD.md",
         "docs/DD.md",
     }
 
-    for relative_path, content in documentation_files.items():
+    for relative_path, content in (
+        documentation_files.items()
+    ):
 
         if relative_path not in allowed_files:
 
@@ -109,7 +121,7 @@ def write_documentation(
 def main():
 
     print("================================")
-    print("AI Documentation Agent")
+    print("AI DD Documentation Agent")
     print("================================")
 
     # --------------------------------------------------
@@ -117,7 +129,9 @@ def main():
     # --------------------------------------------------
 
     documentation_commit_sha = (
-        os.getenv("DOCUMENTATION_COMMIT_SHA")
+        os.getenv(
+            "DOCUMENTATION_COMMIT_SHA"
+        )
         or get_current_commit()
     )
 
@@ -137,7 +151,10 @@ def main():
     print("\nChanged files:")
 
     for path in changed_files:
-        print(f"  {path}")
+
+        print(
+            f"  {path}"
+        )
 
     # --------------------------------------------------
     # 3. Get Git diff
@@ -161,16 +178,18 @@ def main():
     )
 
     # --------------------------------------------------
-    # 5. Generate documentation
+    # 5. Generate DD
     # --------------------------------------------------
 
     result = generate_documentation(
+
         git_diff=git_diff,
+
         source_files=source_files,
     )
 
     # --------------------------------------------------
-    # 6. Validate Gemini response
+    # 6. Validate
     # --------------------------------------------------
 
     validate(result)
@@ -187,37 +206,43 @@ def main():
     )
 
     # --------------------------------------------------
-    # 7. Stop if documentation is not required
+    # 7. Stop if DD is not required
     # --------------------------------------------------
 
-    if not result["documentation_required"]:
+    if not result[
+        "documentation_required"
+    ]:
 
         print(
-            "\nNo documentation changes required."
+            "\nNo DD documentation changes required."
         )
 
         return
 
     # --------------------------------------------------
-    # 8. Prepare documentation files
+    # 8. Prepare DD
     # --------------------------------------------------
 
     documentation_files = {
-        "docs/SD.md": result["sd"],
         "docs/DD.md": result["dd"],
     }
 
     print("\nFiles proposed:")
 
     for path in documentation_files:
-        print(f"  {path}")
+
+        print(
+            f"  {path}"
+        )
 
     # --------------------------------------------------
     # 9. Create documentation branch
     # --------------------------------------------------
 
-    branch_name = create_documentation_branch(
-        documentation_commit_sha
+    branch_name = (
+        create_documentation_branch(
+            documentation_commit_sha
+        )
     )
 
     print(
@@ -226,7 +251,7 @@ def main():
     )
 
     # --------------------------------------------------
-    # 10. Write documentation
+    # 10. Write DD
     # --------------------------------------------------
 
     write_documentation(
@@ -234,20 +259,20 @@ def main():
     )
 
     # --------------------------------------------------
-    # 11. Check actual documentation changes
+    # 11. Check DD changes
     # --------------------------------------------------
 
     if not has_documentation_changes():
 
         print(
-            "\nGemini requested documentation "
+            "\nGemini requested DD documentation "
             "but produced no actual changes."
         )
 
         return
 
     # --------------------------------------------------
-    # 12. Commit documentation
+    # 12. Commit DD
     # --------------------------------------------------
 
     commit_documentation(
@@ -255,11 +280,11 @@ def main():
     )
 
     print(
-        "\nDocumentation commit created."
+        "\nDD documentation commit created."
     )
 
     # --------------------------------------------------
-    # 13. Push documentation branch
+    # 13. Push branch
     # --------------------------------------------------
 
     push_documentation_branch(
@@ -272,7 +297,7 @@ def main():
     )
 
     # --------------------------------------------------
-    # 14. Create Pull Request
+    # 14. Create PR
     # --------------------------------------------------
 
     pull_request = create_pull_request(
@@ -281,7 +306,7 @@ def main():
     )
 
     print(
-        "\nPull Request created:"
+        "\nDD Pull Request created:"
     )
 
     print(
