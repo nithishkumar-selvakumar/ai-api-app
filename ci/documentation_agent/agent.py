@@ -1,19 +1,21 @@
 import json
 import os
-from pathlib import Path
-
 import time
+from pathlib import Path
 
 from google import genai
 from google.genai import types
 from google.genai.errors import ServerError
 
+
 ROOT = Path(__file__).resolve().parents[2]
+
 
 MODEL = os.getenv(
     "GEMINI_MODEL",
     "gemini-3.6-flash",
 )
+
 
 client = genai.Client(
     api_key=os.environ["GEMINI_API_KEY"]
@@ -21,6 +23,7 @@ client = genai.Client(
 
 
 def read_file(path: Path) -> str:
+
     if not path.exists():
         return ""
 
@@ -32,7 +35,6 @@ def read_file(path: Path) -> str:
 def build_prompt(
     git_diff: str,
     source_files: dict[str, str],
-    existing_sd: str,
     existing_dd: str,
 ) -> str:
 
@@ -42,14 +44,6 @@ def build_prompt(
         / "documentation_agent"
         / "prompts"
         / "system.md"
-    )
-
-    sd_template = read_file(
-        ROOT
-        / "ci"
-        / "documentation_agent"
-        / "prompts"
-        / "sd_template.md"
     )
 
     dd_template = read_file(
@@ -73,22 +67,10 @@ def build_prompt(
 {system_prompt}
 
 ========================
-SD TEMPLATE
-========================
-
-{sd_template}
-
-========================
 DD TEMPLATE
 ========================
 
 {dd_template}
-
-========================
-EXISTING SD.md
-========================
-
-{existing_sd}
 
 ========================
 EXISTING DD.md
@@ -109,14 +91,11 @@ RELEVANT SOURCE CODE
 {source_code}
 """
 
+
 def generate_documentation(
     git_diff: str,
     source_files: dict[str, str],
 ) -> dict:
-
-    existing_sd = read_file(
-        ROOT / "docs" / "SD.md"
-    )
 
     existing_dd = read_file(
         ROOT / "docs" / "DD.md"
@@ -125,7 +104,6 @@ def generate_documentation(
     prompt = build_prompt(
         git_diff=git_diff,
         source_files=source_files,
-        existing_sd=existing_sd,
         existing_dd=existing_dd,
     )
 
@@ -141,30 +119,37 @@ def generate_documentation(
             )
 
             response = client.models.generate_content(
+
                 model=MODEL,
+
                 contents=prompt,
+
                 config=types.GenerateContentConfig(
+
                     response_mime_type="application/json",
+
                     response_schema={
+
                         "type": "OBJECT",
+
                         "properties": {
+
                             "documentation_required": {
                                 "type": "BOOLEAN"
                             },
+
                             "reason": {
                                 "type": "STRING"
                             },
-                            "sd": {
-                                "type": "STRING"
-                            },
+
                             "dd": {
                                 "type": "STRING"
                             },
                         },
+
                         "required": [
                             "documentation_required",
                             "reason",
-                            "sd",
                             "dd",
                         ],
                     },
@@ -175,7 +160,7 @@ def generate_documentation(
                 response.text
             )
 
-        except ServerError as exc:
+        except ServerError:
 
             if attempt == max_retries - 1:
                 raise

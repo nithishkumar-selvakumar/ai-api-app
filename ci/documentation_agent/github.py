@@ -111,7 +111,7 @@ def create_pull_request(
     owner, repo = get_repo_info()
 
     title = (
-        f"docs: update SD and DD for "
+        f"docs: update DD for "
         f"{commit_sha[:8]}"
     )
 
@@ -122,7 +122,6 @@ Generated from:
 
 ### Documentation Updated
 
-- `docs/SD.md`
 - `docs/DD.md`
 
 ### Review Required
