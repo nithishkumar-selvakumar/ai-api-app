@@ -19,9 +19,6 @@ router = APIRouter(
 )
 
 
-@router.get("/time")
-async def get_current_time():
-    return {"time": datetime.now().isoformat()}
 
 @router.get("/datetime")
 async def get_current_time():
